@@ -772,7 +772,7 @@ document.documentElement.classList.add("js");
     // Preserve the generated markup in the current document instead of allowing it to abort boot.
     const bridgeDocumentWrite = (...parts) => {
       const html = parts.map(value => String(value)).join('');
-      say('DOCUMENT.WRITE BRIDGE: captured ' + html.length + ' characters');
+      say('DOCUMENT.WRITE BRIDGE: captured ' + html.length + ' characters: ' + html.slice(0,1200).replace(/\\s+/g,' '));
       const template = document.createElement('template');
       template.innerHTML = html;
       const scripts = [...template.content.querySelectorAll('script')];
@@ -784,6 +784,8 @@ document.documentElement.classList.add("js");
         for (const attr of oldScript.attributes) replacement.setAttribute(attr.name, attr.value);
         replacement.textContent = oldScript.textContent;
         if (oldScript.hasAttribute('src')) replacement.setAttribute('src', oldScript.getAttribute('src'));
+        if (!replacement.hasAttribute('async') && !replacement.hasAttribute('defer')) replacement.async = false;
+        bridgeScriptElement(replacement);
         nativeAppendChild.call(target, replacement);
       }
     };
