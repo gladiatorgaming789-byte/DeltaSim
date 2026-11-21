@@ -767,9 +767,9 @@ document.documentElement.classList.add("js");
       return nativeInsertBefore.call(this, node, reference);
     };
 
-    // boot0 writes a small compatibility notice with document.write().
+    // boot0 calls document.write() while running as an asynchronously loaded Blob script.
     // In a user-triggered, asynchronously loaded boot sequence Chrome rejects that API.
-    // Preserve the generated markup in the current document instead of allowing it to abort boot.
+    // Capture the generated markup and insert its elements into the active document instead of aborting boot.
     const bridgeDocumentWrite = (...parts) => {
       const html = parts.map(value => String(value)).join('');
       say('DOCUMENT.WRITE BRIDGE: captured ' + html.length + ' characters: ' + html.slice(0,1200).replace(/\\s+/g,' '));
