@@ -459,7 +459,7 @@ document.documentElement.classList.add("js");
     await flushDiagnostics(true);
     for (const [path, originalCode] of rewritten) {
       blobIndex++;
-      say(\`BLOB URL: START \${blobIndex}/\${rewritten.size} \${path}\`);
+      say(`BLOB URL: START ${blobIndex}/${rewritten.size} ${path}`);
       await flushDiagnostics();
 
       let code = originalCode;
@@ -481,7 +481,7 @@ document.documentElement.classList.add("js");
       }
 
       blobUrls.set(path, URL.createObjectURL(new Blob([code], {type:'text/javascript'})));
-      say(\`BLOB URL: DONE \${blobIndex}/\${rewritten.size} \${path}\`);
+      say(`BLOB URL: DONE ${blobIndex}/${rewritten.size} ${path}`);
       if (blobIndex % 10 === 0 || blobIndex === rewritten.size) { await flushDiagnostics(true); await sleep(0); }
     }
     rewritten.clear();
