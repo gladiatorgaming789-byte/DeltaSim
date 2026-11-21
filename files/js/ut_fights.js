@@ -1,0 +1,11 @@
+import { c as I, d as n, e as D, f as S } from "./c-AW7KED3I.js";
+import "./c-O2NJYXG5.js";
+import "./c-ODPZ3YBU.js";
+import "./c-HEUEF6GJ.js";
+import "./c-CPDHW4F2.js";
+import "./c-5UGGU4DV.js";
+import "./c-YU6VF6CE.js";
+import "./c-O6GE5FYX.js";
+import "./c-ZEHUSSXN.js";
+import "./c-7Q4J33FN.js";
+export { I as UT_DATA, D as UT_ENGINES, n as buildUndertaleFights, S as startUndertaleFight };
