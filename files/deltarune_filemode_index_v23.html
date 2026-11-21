@@ -420,10 +420,10 @@ document.documentElement.classList.add("js");
         }
         if (path === 'js/c-QJXN6G4A.js') {
           const n = `__drQJLoopCount_${loopNo}`;
-          return `for (let ${n}=0; ; ${n}++) {\\n` +
-            `if (${n} > 100000) throw new Error('DR LOOP GUARD: ${path} loop ${loopNo} exceeded 100000 iterations');\\n` +
-            `if (${n} > 0 && ${n} % 10000 === 0) globalThis.__drSay?.('MODULE LOOP: ${path} loop ${loopNo} reached ' + ${n} + ' iterations');\\n` +
-            `if (${n} === 0) globalThis.__drSay?.('MODULE LOOP: ${path} loop ${loopNo} entered');\\n`;
+          return `for (let ${n}=0; ; ${n}++) {\n` +
+            `if (${n} > 100000) throw new Error('DR LOOP GUARD: ${path} loop ${loopNo} exceeded 100000 iterations');\n` +
+            `if (${n} > 0 && ${n} % 10000 === 0) globalThis.__drSay?.('MODULE LOOP: ${path} loop ${loopNo} reached ' + ${n} + ' iterations');\n` +
+            `if (${n} === 0) globalThis.__drSay?.('MODULE LOOP: ${path} loop ${loopNo} entered');\n`;
         }
         if (path === 'js/c-VEGOCJZG.js') {
           const n = `__drVegLoopCount_${loopNo}`;
@@ -440,7 +440,7 @@ document.documentElement.classList.add("js");
       if (path === 'js/c-QJXN6G4A.js') {
         const loopEnd = '})(rI, 849130);';
         if (!code.includes(loopEnd)) throw new Error('MODULE DIAGNOSTIC: c-QJXN6G4A loop marker not found');
-        code = code.replace(loopEnd, loopEnd + `\\nglobalThis.__drSay?.('MODULE LOOP: ${path} obfuscation loop exited');`);
+        code = code.replace(loopEnd, loopEnd + `\nglobalThis.__drSay?.('MODULE LOOP: ${path} obfuscation loop exited');`);
       }
       if (path === 'js/c-BAF3JL6T.js') {
         code = code.replace('var Ji = {};', `globalThis.__drSay?.('MODULE EVAL: ${path} body entered after static imports');\nvar Ji = {};`);
