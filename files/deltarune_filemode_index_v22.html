@@ -5,7 +5,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover,user-scalable=no">
-<title>DELTARUNE Fight Simulator - Local Launcher v21</title>
+<title>DELTARUNE Fight Simulator - Local Launcher v22</title>
 <meta name="description" content="Play 300+ DELTARUNE and UNDERTALE fights online, free: every chapter's bosses, JEVIL, Spamton NEO, Sans, a boss rush, autoplay and replays. Fan-made, no download.">
 <meta name="robots" content="index, follow, max-image-preview:large">
 <meta name="author" content="puskevi">
@@ -457,12 +457,31 @@ document.documentElement.classList.add("js");
     let blobIndex = 0;
     say(`BLOB URLS: creating ${rewritten.size} module URLs`);
     await flushDiagnostics(true);
-    for (const [path, code] of rewritten) {
+    for (const [path, originalCode] of rewritten) {
       blobIndex++;
-      say(`BLOB URL: START ${blobIndex}/${rewritten.size} ${path}`);
+      say(\`BLOB URL: START \${blobIndex}/\${rewritten.size} \${path}\`);
       await flushDiagnostics();
+
+      let code = originalCode;
+      // Targeted module-linking experiment: bypass the import map for the
+      // single static dependency of c-VEGOCJZG.js.
+      if (path === 'js/c-VEGOCJZG.js') {
+        const dependencyPath = 'js/c-7Q4J33FN.js';
+        const dependencyUrl = blobUrls.get(dependencyPath);
+        if (!dependencyUrl) {
+          throw new Error('MODULE LINK TEST: dependency Blob URL is not available before c-VEGOCJZG.js.');
+        }
+        const importSpecifier = /(["'])drmod\/js\/c-7Q4J33FN\.js\1/g;
+        const matches = [...code.matchAll(importSpecifier)];
+        if (matches.length !== 1) {
+          throw new Error('MODULE LINK TEST: expected exactly one rewritten static import of c-7Q4J33FN.js in c-VEGOCJZG.js; found ' + matches.length);
+        }
+        code = code.replace(importSpecifier, JSON.stringify(dependencyUrl));
+        say('MODULE LINK TEST: c-VEGOCJZG.js static dependency now uses the direct Blob URL for c-7Q4J33FN.js');
+      }
+
       blobUrls.set(path, URL.createObjectURL(new Blob([code], {type:'text/javascript'})));
-      say(`BLOB URL: DONE ${blobIndex}/${rewritten.size} ${path}`);
+      say(\`BLOB URL: DONE \${blobIndex}/\${rewritten.size} \${path}\`);
       if (blobIndex % 10 === 0 || blobIndex === rewritten.size) { await flushDiagnostics(true); await sleep(0); }
     }
     rewritten.clear();
@@ -809,7 +828,6 @@ document.documentElement.classList.add("js");
     if (missing.length) throw new Error('Could not resolve renamed JavaScript file(s): ' + missing.join(', '));
     setStatus('Loading game modules…');
     say(`MODULES: importing ${bootPaths.length} boot modules`);
-    say('V22 DIAGNOSTICS: import-map entries='+Object.keys(imports).length+'; target='+blobUrls.has('js/c-VEGOCJZG.js')+'; child='+blobUrls.has('js/c-7Q4J33FN.js'));
     for (let i=0; i<bootPaths.length; i++) {
       const p = bootPaths[i];
       try {
@@ -820,25 +838,7 @@ document.documentElement.classList.add("js");
           for (let j=0; j<deps.length; j++) {
             const dep = deps[j];
             say(`MODULE TRACE: starting dependency ${j+1}/${deps.length} (${dep})`);
-            if (dep === 'js/c-VEGOCJZG.js') {
-              const nested = moduleDeps.get(dep) || [];
-              const mapped = blobUrls.get(dep);
-              say(`MODULE TRACE V22: target mapped=${!!mapped}; blob=${mapped || '(missing)'}; static dependencies=${JSON.stringify(nested)}`);
-              for (const child of nested) {
-                say(`MODULE TRACE V22: child ${child} mapped=${blobUrls.has(child)}; blob=${blobUrls.get(child) || '(missing)'}`);
-              }
-              await flushDiagnostics(true);
-              const startedAt = performance.now();
-              const pendingImport = import('drmod/'+dep);
-              pendingImport.catch(() => {});
-              await Promise.race([
-                pendingImport,
-                new Promise((_, reject) => setTimeout(() => reject(new Error('V22 IMPORT WATCHDOG: c-VEGOCJZG.js did not settle within 30000ms')), 30000))
-              ]);
-              say(`MODULE TRACE V22: c-VEGOCJZG.js import settled after ${Math.round(performance.now()-startedAt)}ms`);
-            } else {
-              await import('drmod/'+dep);
-            }
+            await import('drmod/'+dep);
             say(`MODULE TRACE: dependency ${j+1}/${deps.length} OK (${dep})`);
           }
         }
