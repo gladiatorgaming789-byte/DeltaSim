@@ -1265,6 +1265,10 @@ document.documentElement.classList.add("js");
       port.onmessage = (event) => {
         const data = event?.data;
         if (!data || data.__drWorkerRPC !== true) return;
+        if (data.error) {
+          say('WORKER ERROR (' + label + '): ' + data.error);
+          return;
+        }
         if (data.request && data.request.id != null) {
           void replyFileRequest(data.request);
           return;
@@ -1280,6 +1284,13 @@ document.documentElement.classList.add("js");
       port.start();
       worker.postMessage({__drWorkerRPC:true,init:true}, [channel.port2]);
       workerRPCPorts.set(worker,{pending,port});
+      if (typeof worker.addEventListener === 'function') {
+        worker.addEventListener('error', event => {
+          say('WORKER ERROR (' + label + '): ' + String(event.message || event.type) +
+            (event.filename ? ' @ ' + event.filename + ':' + (event.lineno || '') : ''));
+        });
+        worker.addEventListener('messageerror', () => say('WORKER MESSAGE ERROR (' + label + ')'));
+      }
       say('WORKER RPC: attached ' + label);
       return {pending,port};
     };
@@ -1317,12 +1328,39 @@ document.documentElement.classList.add("js");
         return {requested, actual, url: url || null};
       } catch { return null; }
     };
+    const makeWorkerBootstrapURL = (target) => {
+      const source = [
+        'globalThis.__drModuleMap=' + JSON.stringify(moduleMapObject) + ';',
+        'globalThis.__drModuleReverse=' + JSON.stringify(moduleReverseObject) + ';',
+        'globalThis.__drWorkerBase=' + JSON.stringify(target) + ';',
+        helperSource,
+        'globalThis.addEventListener("message", async function(event) {',
+        '  const port = event.ports && event.ports[0];',
+        '  if (!event.data || event.data.__drWorkerRPC !== true || !event.data.init || !port || globalThis.__drWorkerStarted) return;',
+        '  globalThis.__drWorkerStarted = true;',
+        '  try {',
+        '    await globalThis.__drInstallWorkerFileBridge({__drPort:port});',
+        '    await import(' + JSON.stringify(target) + ');',
+        '  } catch (error) {',
+        '    const detail = String(error && (error.stack || error));',
+        '    globalThis.__drWorkerBootstrapError = detail;',
+        '    try { port.postMessage({__drWorkerRPC:true,error:detail}); } catch {}',
+        '    setTimeout(() => { throw error; }, 0);',
+        '  }',
+        '}, {once:true});'
+      ].join('\n');
+      return URL.createObjectURL(new Blob([source], {type:'text/javascript'}));
+    };
     if (NativeWorker) {
       const BridgedWorker = function(scriptURL, options) {
         const hit = resolveWorkerEntry(scriptURL);
         if (hit?.url) {
           say('WORKER BRIDGE: redirected ' + hit.requested + ' -> ' + hit.actual);
-          const w = new NativeWorker(hit.url, options);
+          const workerURL = options && options.type === 'module'
+            ? makeWorkerBootstrapURL(hit.url)
+            : hit.url;
+          if (workerURL !== hit.url) say('WORKER BRIDGE: delayed module evaluation until file RPC is ready (' + hit.actual + ')');
+          const w = new NativeWorker(workerURL, options);
           attachWorkerRPC(w, hit.actual);
           return w;
         }
@@ -1460,17 +1498,11 @@ document.documentElement.classList.add("js");
     // The title-reveal module was originally async; resolve its current un-hashed filename.
     const titlePath = logicalToActual.get('js/titlereveal.js');
     if (titlePath) {
-      // Diagnostic isolation: titlereveal starts its own animation loop and may
-      // create a module Worker from import.meta.url. Disable only its optional
-      // reveal startup while testing whether it is responsible for the freeze.
-      say('MODULE: starting titlereveal.js (reveal startup temporarily disabled)');
-      window.__drReveal = false;
+      say('MODULE: starting titlereveal.js');
       import(blobUrls.get(titlePath) || ('drmod/'+titlePath)).then(()=>{
-        say('MODULE: titlereveal.js imported (reveal startup skipped)');
-        delete window.__drReveal;
+        say('MODULE: titlereveal.js imported');
       }).catch(e=>{
         say('MODULE ERROR titlereveal.js: '+(e.stack||e));
-        delete window.__drReveal;
       });
     } else say('MODULE: titlereveal.js not found');
     say(`STARTUP: before boot1; #boot=${!!document.getElementById('boot')}`);
